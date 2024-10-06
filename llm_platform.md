@@ -2,7 +2,9 @@
 
  
 
-## 1. 需求
+## 1. 相关信息
+
+### 1.1 需求
 
 为**垂直领域**大模型应用提供模型训练、模型推理、模型部署和测评、模型管理、资源调度等工程解决方案
 
@@ -34,7 +36,7 @@
 
 **训练任务**：记录一次实际的训练过程，应该包含训练结果
 
-**评估**：配置模型如何进行评估，人工 or 自动评估，使用哪些数据集
+**评估**：配置模型如何进行评估，人工 or 自动评估，使用哪些数据集，量化模型的表现以判断模型版本更新的收益
 
 **评估任务**：记录一次实际的评估过程，包含评估过程中模型的实际输入输出内容
 
@@ -82,10 +84,12 @@
 - 
 
 #### 2.3.4 评估域
-- 创建一个评估任务
-- 返回评估结果
+- 创建一个评估任务（任务应该有某种分配规则，将任务自动分配给一批评测员和质检员）
+- 获取登录用户待处理的评估/质检任务
+- 返回模型的评估结果
 
 #### 2.3.5 部署域
+- 创建模型的部署配置
 - 启动一个部署工单
 - 获取部门或个人的资源Quota
 - 设置部门或个人的资源Quota
@@ -106,20 +110,18 @@
 #### 3.1.1 **数据集管理**
 
 
-•     数据导入
+•     数据集导入 / 删除
 
 -    文件导入
 
 -    链接导入（如开源数据集）
 
--    HDFS导入
+-    HDFS导入（记录地址即可）
 
-#### 3.1.2 **可视化**
- 
+•    数据集权限管理
 
- 
 
-#### 3.1.3 **数据集预处理**
+#### 3.1.2 **数据集预处理**
 
 创建数据清洗任务，配置数据清洗规则（内置部分常用规则，支持编写个性化清洗规则）
 
@@ -127,7 +129,7 @@
 
  
 
-##### 3.1.3.1 **数据清洗任务**
+##### 3.1.2.1 **数据清洗任务**
 
 •     网页数据去除html tag
 
@@ -139,7 +141,7 @@
 
  
 
-##### 3.1.3.2 **数据增强任务**
+##### 3.1.2.2 **数据增强任务**
 
 •     图片，对图片进行一系列处理形成新的图片来增加多样性和数据量。（e.g. 旋转，加噪声，缩放，裁剪...）
 
@@ -157,7 +159,7 @@
 
  
 
-#### 3.1.4 **数据标注**
+#### 3.1.3 **数据标注**
 
 支持多种标注方式，可以配置成模板复用
 
@@ -182,6 +184,9 @@
 -    识别成文字
 
  
+#### 3.1.4 **可视化**
+使用公司已有的基础设施实现
+
 
 ### 3.2 **模型推理**
 
@@ -189,14 +194,16 @@
  
 
 ### 3.3 **模型测评**
+> 内部测试时可以考历届的搏学考试
 
 #### 3.3.1 **测试数据集管理**
-> 每年考个搏学考试
+
 
 #### 3.3.2 **评测任务管理**
 
 支持多版本Prompt的评测结果对比？
 
+如果是人工评测，需要把评测任务分配给评测员，需质检
  
 
 #### 3.3.3 **模型竞技场**
@@ -218,10 +225,44 @@ PyTorch/TensorFlow编写的模型 -> 转化成中间表示ONNX -> 推理引擎( 
 
 #### 3.4.3 **成本看板**
 
+#### 3.4.4 **表结构**
+
+部署配置表
+```sql
+CREATE TABLE deployment_config (
+    `id` bigint(20) unsigned NOT NULL COMMENT 'id',
+    `name` VARCHAR(100) NOT NULL COMMENT '模型项目名',
+    `desc` VARCHAR(1000) DEFAULT NULL COMMENT '描述',
+    `model_id` bigint(20) NOT NULL COMMENT '模型id',
+    `config` JSON DEFAULT NULL COMMENT '部署配置',
+    `version` int(11) NOT NULL DEFAULT 0 COMMENT '版本锁',
+    `mark_delete` tinyint(4) NOT NULL DEFAULT 0 COMMENT '删除标',
+    `create_time` bigint(20) NOT NULL DEFAULT 0 COMMENT '创建时间戳',
+    `update_time` bigint(20) NOT NULL DEFAULT 0 COMMENT '更新时间戳',
+    PRIMARY KEY (`id`),
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='部署配置表';
+```
+
+部署工单表
+```sql
+CREATE TABLE deplyment_session (
+    `id` bigint(20) unsigned NOT NULL COMMENT 'id',
+    `name` VARCHAR(100) NOT NULL COMMENT '模型项目名',
+    `desc` VARCHAR(1000) DEFAULT NULL COMMENT '描述',
+    `deplyment_config_id` bigint(20) NOT NULL COMMENT '部署配置id',
+    `config` JSON DEFAULT NULL COMMENT '部署配置快照',
+    `version` int(11) NOT NULL DEFAULT 0 COMMENT '版本锁',
+    `mark_delete` tinyint(4) NOT NULL DEFAULT 0 COMMENT '删除标',
+    `create_time` bigint(20) NOT NULL DEFAULT 0 COMMENT '创建时间戳',
+    `update_time` bigint(20) NOT NULL DEFAULT 0 COMMENT '更新时间戳',
+    PRIMARY KEY (`id`),
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='部署工单表';
+```
+
 
 ### 3.5 **模型管理**
 
-跟踪每个模型的开发进度
+跟踪模型的开发进度
 
 
 #### 3.5.1 **表结构**
@@ -229,21 +270,20 @@ PyTorch/TensorFlow编写的模型 -> 转化成中间表示ONNX -> 推理引擎( 
 模型表
 ```sql
 CREATE TABLE model_project (
-    id bigint PRIMARY KEY,
-    name VARCHAR(100) NOT NULL COMMENT '模型项目名',
-    desc VARCHAR(1000) DEFAULT NULL COMMENT '描述',
-    path VARCHAR(200) DEFAULT NULL COMMENT '模型路径',
-    train_framework VARCHAR(100) DEFAULT NULL COMMENT '训练框架',
-    Inference_framework VARCHAR(100) DEFAULT NULL COMMENT '推理框架',
-    metrics_url VARCHAR(200) DEFAULT NULL COMMENT '监控看板url',
-);
+    `id` bigint(20) unsigned NOT NULL COMMENT 'id',
+    `name` VARCHAR(100) NOT NULL COMMENT '模型项目名',
+    `desc` VARCHAR(1000) DEFAULT NULL COMMENT '描述',
+    `path` VARCHAR(200) DEFAULT NULL COMMENT '模型路径',
+    `train_framework` VARCHAR(100) DEFAULT NULL COMMENT '训练框架',
+    `Inference_framework` VARCHAR(100) DEFAULT NULL COMMENT '推理框架',
+    `metrics_url` VARCHAR(200) DEFAULT NULL COMMENT '监控看板url',
+    `version` int(11) NOT NULL DEFAULT 0 COMMENT '版本锁',
+    `mark_delete` tinyint(4) NOT NULL DEFAULT 0 COMMENT '删除标',
+    `create_time` bigint(20) NOT NULL DEFAULT 0 COMMENT '创建时间戳',
+    `update_time` bigint(20) NOT NULL DEFAULT 0 COMMENT '更新时间戳',
+    PRIMARY KEY (`id`),
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='模型表';
 ```
-
-评测任务表
-
-部署配置表
-
-部署工单表
 
 #### 3.5.2 **监控**
 
