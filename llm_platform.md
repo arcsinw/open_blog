@@ -239,13 +239,14 @@ enum DatasetTaskType {
     Annotation = 3000,      // 数据标注
 }
 
+
 // 数据集任务子类型
 enum DatasetTaskSubType {
     Bounding_Box_Annotation = 3001, // 区域标注
-    Image_Description = 3002，      // 图像描述
-    Video_Description = 3003，      // 视频描述
-    Sentiment_Analysis = 3004，     // 情感分析
-    Speech_Recognition = 3005，     // 音频转文本
+    Image_Description = 3002,       // 图像描述
+    Video_Description = 3003,       // 视频描述
+    Sentiment_Analysis = 3004,      // 情感分析
+    Speech_Recognition = 3005,      // 音频转文本
 }
 ```
 
