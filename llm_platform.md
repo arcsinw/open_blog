@@ -78,10 +78,10 @@
 - 创建一个数据集
 - 创建数据集预处理任务
 - 创建数据标注任务（支持众包）
-- 
+
 
 #### 2.3.3 训练域
-- 
+
 
 #### 2.3.4 评估域
 - 创建一个评估任务（任务应该有某种分配规则，将任务自动分配给一批评测员和质检员）
@@ -139,6 +139,7 @@
 
 •     去除重复数据
 
+•     自定义任务
  
 
 ##### 3.1.2.2 **数据增强任务**
@@ -187,6 +188,66 @@
 #### 3.1.4 **可视化**
 使用公司已有的基础设施实现
 
+
+#### 3.1.5 表结构
+数据集
+```sql
+CREATE TABLE dataset (
+    `id` bigint(20) unsigned NOT NULL COMMENT 'id',
+    `name` VARCHAR(100) NOT NULL COMMENT '数据集名称',
+    `desc` VARCHAR(1000) DEFAULT NULL COMMENT '描述',
+    `type` int(11) DEFAULT NULL COMMENT '数据集类型，图像/文本/...',
+    `project_space_id` bigint(20) NOT NULL COMMENT '空间id，如需要控制可见性可使用',
+    `file_url` VARCHAR(1000) NOT NULL COMMENT '数据集地址，以基础架构支持为准', 
+    `version` int(11) NOT NULL DEFAULT 0 COMMENT '版本锁',
+    `mark_delete` tinyint(4) NOT NULL DEFAULT 0 COMMENT '删除标',
+    `create_time` bigint(20) NOT NULL DEFAULT 0 COMMENT '创建时间戳',
+    `update_time` bigint(20) NOT NULL DEFAULT 0 COMMENT '更新时间戳',
+    PRIMARY KEY (`id`),
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='数据集表';
+```
+
+数据集处理任务
+```sql
+CREATE TABLE dataset_task (
+    `id` bigint(20) unsigned NOT NULL COMMENT 'id',
+    `name` VARCHAR(100) NOT NULL COMMENT '任务名',
+    `desc` VARCHAR(1000) DEFAULT NULL COMMENT '描述',
+    `type` int(11) NOT NULL COMMENT '任务类型，清洗/增强/标注',
+    `sub_type` int(11) DEFAULT NULL COMMENT '任务子类型',
+    `status` int(11) DEFAULT NULL COMMENT '状态',
+    `version` int(11) NOT NULL DEFAULT 0 COMMENT '版本锁',
+    `mark_delete` tinyint(4) NOT NULL DEFAULT 0 COMMENT '删除标',
+    `create_time` bigint(20) NOT NULL DEFAULT 0 COMMENT '创建时间戳',
+    `update_time` bigint(20) NOT NULL DEFAULT 0 COMMENT '更新时间戳',
+    PRIMARY KEY (`id`),
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='数据集处理任务表';
+```
+
+#### 3.1.6 IDL
+```thrift
+enum DatasetType {
+    Image = 1,
+    Text = 2,
+    Video = 3
+}
+
+// 数据集任务类型
+enum DatasetTaskType {
+    Cleaning = 1000,        // 数据清洗
+    Augmentation = 2000,    // 数据增强
+    Annotation = 3000,      // 数据标注
+}
+
+// 数据集任务子类型
+enum DatasetTaskSubType {
+    Bounding_Box_Annotation = 3001, // 区域标注
+    Image_Description = 3002，      // 图像描述
+    Video_Description = 3003，      // 视频描述
+    Sentiment_Analysis = 3004，     // 情感分析
+    Speech_Recognition = 3005，     // 音频转文本
+}
+```
 
 ### 3.2 **模型推理**
 
@@ -277,6 +338,9 @@ CREATE TABLE model_project (
     `train_framework` VARCHAR(100) DEFAULT NULL COMMENT '训练框架',
     `Inference_framework` VARCHAR(100) DEFAULT NULL COMMENT '推理框架',
     `metrics_url` VARCHAR(200) DEFAULT NULL COMMENT '监控看板url',
+    `status` int(11) NOT NULL DEFAULT 0 COMMENT '状态', 
+    `code_repo_url` VARCHAR(200) DEFAULT NULL COMMENT '代码仓库url',
+    `hdfs_dir` VARCHAR(200) DEFAULT NULL COMMENT '模型文件url',
     `version` int(11) NOT NULL DEFAULT 0 COMMENT '版本锁',
     `mark_delete` tinyint(4) NOT NULL DEFAULT 0 COMMENT '删除标',
     `create_time` bigint(20) NOT NULL DEFAULT 0 COMMENT '创建时间戳',
